@@ -1,3 +1,7 @@
+import torch
+from tqdm.auto import tqdm
+
+from src.metrics.eer import EERMetric
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
 
@@ -54,6 +58,50 @@ class Trainer(BaseTrainer):
         for met in metric_funcs:
             metrics.update(met.name, met(**batch))
         return batch
+
+    def _evaluation_epoch(self, epoch, part, dataloader):
+        """
+        Evaluate the model on a partition after training for an epoch.
+
+        The base method is overridden because EER is defined over a whole
+        partition rather than over a batch: the outputs are collected during
+        the loop and the metric is computed once, after it. Everything else
+        repeats the base method.
+
+        Args:
+            epoch (int): current training epoch.
+            part (str): partition to evaluate on.
+            dataloader (DataLoader): dataloader for the partition.
+        Returns:
+            logs (dict): logs that contain the information about evaluation.
+        """
+        self.is_train = False
+        self.model.eval()
+        self.evaluation_metrics.reset()
+
+        all_logits, all_labels = [], []
+        with torch.no_grad():
+            for batch_idx, batch in tqdm(
+                enumerate(dataloader), desc=part, total=len(dataloader)
+            ):
+                batch = self.process_batch(batch, metrics=self.evaluation_metrics)
+                all_logits.append(batch["logits"].cpu())
+                all_labels.append(batch["labels"].cpu())
+
+        metric = EERMetric()
+        eer = metric(
+            scores=torch.cat(all_logits).softmax(dim=-1)[:, 1].numpy(),
+            labels=torch.cat(all_labels).numpy(),
+        )
+
+        self.writer.set_step(epoch * self.epoch_len, part)
+        self._log_scalars(self.evaluation_metrics)
+        self.writer.add_scalar(metric.name, eer)
+        self._log_batch(batch_idx, batch, part)
+
+        logs = self.evaluation_metrics.result()
+        logs[metric.name] = eer
+        return logs
 
     def _log_batch(self, batch_idx, batch, mode="train"):
         """
