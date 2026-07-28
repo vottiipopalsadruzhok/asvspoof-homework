@@ -1,11 +1,16 @@
 defaults:
-  - model: baseline
+  - model: lcnn
   - writer: wandb
-  - metrics: example
-  - datasets: example
+  - metrics: asvspoof
+  - datasets: asvspoof
   - dataloader: example
-  - transforms: example
+  - transforms: asvspoof
   - _self_
+data_dir: ???
+sample_rate: 16000
+n_fft: 512
+n_freq: 257
+num_frames: 750
 optimizer:
   _target_: torch.optim.Adam
   lr: 3e-4
@@ -14,17 +19,18 @@ lr_scheduler:
   gamma: 0.9
   step_size: ${trainer.epoch_len}
 loss_function:
-  _target_: src.loss.ExampleLoss
+  _target_: src.loss.WeightedCrossEntropyLoss
+  weight: [0.557, 4.919]
 trainer:
   log_step: 50
-  n_epochs: 100
+  n_epochs: 10
   epoch_len: 500
-  device_tensors: ["data_object", "labels"] # which tensors should be on device (ex. GPU)
+  device_tensors: ["spectrogram", "labels"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
   device: auto # device name or "auto"
   override: False # if True, will override the previous run with the same name
-  monitor: "max test_MulticlassAccuracy" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
-  save_period: 5 # checkpoint each save_period epochs in addition to the best epoch
+  monitor: "off" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
+  save_period: 10 # checkpoint each save_period epochs in addition to the best epoch
   early_stop: ${trainer.n_epochs} # epochs for early stopping
   save_dir: "saved"
   seed: 1

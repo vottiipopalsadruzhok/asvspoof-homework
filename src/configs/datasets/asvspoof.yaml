@@ -1,0 +1,12 @@
+train:
+  _target_: src.datasets.ASVSpoofDataset
+  part: "train"
+  data_dir: ${data_dir}
+  target_sr: ${sample_rate}
+  instance_transforms: ${transforms.instance_transforms.train}
+dev:
+  _target_: src.datasets.ASVSpoofDataset
+  part: "dev"
+  data_dir: ${data_dir}
+  target_sr: ${sample_rate}
+  instance_transforms: ${transforms.instance_transforms.inference}

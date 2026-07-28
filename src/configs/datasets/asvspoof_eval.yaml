@@ -1,0 +1,6 @@
+eval:
+  _target_: src.datasets.ASVSpoofDataset
+  part: "eval"
+  data_dir: ${data_dir}
+  target_sr: ${sample_rate}
+  instance_transforms: ${transforms.instance_transforms.inference}

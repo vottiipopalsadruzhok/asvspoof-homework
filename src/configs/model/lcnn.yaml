@@ -1,0 +1,5 @@
+_target_: src.model.LCNN
+n_freq: ${n_freq}
+n_time: ${num_frames}
+n_class: 2
+dropout: 0.75
